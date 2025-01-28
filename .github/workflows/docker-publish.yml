@@ -38,8 +38,8 @@ jobs:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
         platform: [
-          { os: ubuntu-24.04, arch: linux/amd64, tag-postfix: linux-amd64 },
-          { os: ubuntu-24.04-arm, arch: linux/arm64, tag-postfix: linux-arm64 }
+          { os: ubuntu-24.04, arch: linux/amd64, tag-postfix: amd },
+          { os: ubuntu-24.04-arm, arch: linux/arm64, tag-postfix: arm }
         ]
     runs-on: ${{ matrix.platform.os }}
     permissions:
@@ -62,7 +62,7 @@ jobs:
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
       - name: Build Image with Spring boot Graalvm Support
-        run: ./gradlew bootBuildImage --imageName=${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.tag-postfix }} --imagePlatform=${{ matrix.platform.arch }}
+        run: ./gradlew bootBuildImage --imageName=${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} --imagePlatform=${{ matrix.platform.arch }}
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -76,10 +76,10 @@ jobs:
       # run docker push command without using docker/build-push-action
       - name: Build and push Docker image
         run: |
-          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.tag-postfix }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.tag-postfix }}
-          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.tag-postfix }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.platform.tag-postfix }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.tag-postfix }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.platform.tag-postfix }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.platform.tag-postfix }}:${{ needs.get-tag.outputs.tag }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.platform.tag-postfix }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.platform.tag-postfix }}:${{ needs.get-tag.outputs.tag }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.platform.tag-postfix }}:latest
   create-manifest:
     needs: [ get-tag, build-and-push-image ]
     runs-on: ubuntu-latest
@@ -94,7 +94,12 @@ jobs:
       - name: Create and push manifest
         run: |
           docker manifest create ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} \
-            --amend ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-linux-amd64 \
-            --amend ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-linux-arm64
+            --amend ${{ env.IMAGE_NAME }}-amd:${{ needs.get-tag.outputs.tag }} \
+            --amend ${{ env.IMAGE_NAME }}-arm:${{ needs.get-tag.outputs.tag }}
+          
+          docker manifest create ${{ env.IMAGE_NAME }}:latest \
+            --amend ${{ env.IMAGE_NAME }}-amd:latest \
+            --amend ${{ env.IMAGE_NAME }}-arm:latest
           
           docker manifest push ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}
+          docker manifest push ${{ env.IMAGE_NAME }}:latest
