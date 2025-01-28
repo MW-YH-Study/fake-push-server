@@ -35,9 +35,10 @@ jobs:
     needs: get-tag
     strategy:
       matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
         platform: [
           { os: ubuntu-24.04, arch: linux/amd64 },
-          { os: macos-14, arch: linux/arm64 }
+          { os: ubuntu-24.04-arm, arch: linux/arm64 }
         ]
     runs-on: ${{ matrix.platform.os }}
     permissions:
