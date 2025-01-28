@@ -70,7 +70,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       # run docker push command without using docker/build-push-action
       - name: Build and push Docker image
