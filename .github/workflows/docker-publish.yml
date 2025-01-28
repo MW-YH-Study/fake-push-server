@@ -4,6 +4,13 @@ on:
   push:
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag to use'
+        required: true
+        type: string
+        default: 'latest'
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -17,9 +24,10 @@ jobs:
   get-tag:
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.get-tag.outputs.tag }}  # 다른 job에서 사용할 output 정의
+      tag: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || steps.get-tag.outputs.tag }}
     steps:
       - name: Get tag
+        if: github.event_name != 'workflow_dispatch'
         id: get-tag
         run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
@@ -72,4 +80,6 @@ jobs:
       # run docker push command without using docker/build-push-action
       - name: Build and push Docker image
         run: |
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
