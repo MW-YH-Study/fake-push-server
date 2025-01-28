@@ -31,7 +31,7 @@ jobs:
         id: get-tag
         run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-  build-image:
+  build-and-push-image:
     needs: get-tag
     strategy:
       fail-fast: false
@@ -62,7 +62,7 @@ jobs:
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
       - name: Build Image with Spring boot Graalvm Support
-        run: ./gradlew bootBuildImage --imageName=${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} --imagePlatform=${{ matrix.platform.arch }}
+        run: ./gradlew bootBuildImage --imageName=${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.arch }} --imagePlatform=${{ matrix.platform.arch }}
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -76,7 +76,25 @@ jobs:
       # run docker push command without using docker/build-push-action
       - name: Build and push Docker image
         run: |
-          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}
-          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.arch }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.arch }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.arch }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.platform.arch }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-${{ matrix.platform.arch }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.platform.arch }}
+  create-manifest:
+    needs: [ get-tag, build-and-push-image ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create and push manifest
+        run: |
+          docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }} \
+            --amend ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-linux/amd64 \
+            --amend ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}-linux/arm64
+          
+          docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-tag.outputs.tag }}
