@@ -17,6 +17,12 @@ bootBuildImage {
     ]
 }
 
+graalvmNative {
+    metadataRepository {
+        version = '0.3.14'
+    }
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
