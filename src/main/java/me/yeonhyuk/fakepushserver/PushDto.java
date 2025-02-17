@@ -1,4 +1,4 @@
-package me.yeonhyuk.pushserver;
+package me.yeonhyuk.fakepushserver;
 
 import java.util.UUID;
 

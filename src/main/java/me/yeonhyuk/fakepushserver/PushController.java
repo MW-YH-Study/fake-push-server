@@ -1,4 +1,4 @@
-package me.yeonhyuk.pushserver;
+package me.yeonhyuk.fakepushserver;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;

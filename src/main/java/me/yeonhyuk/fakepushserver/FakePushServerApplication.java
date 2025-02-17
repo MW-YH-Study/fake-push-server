@@ -1,13 +1,13 @@
-package me.yeonhyuk.pushserver;
+package me.yeonhyuk.fakepushserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PushServerApplication {
+public class FakePushServerApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(PushServerApplication.class, args);
+        SpringApplication.run(FakePushServerApplication.class, args);
     }
 
 }
