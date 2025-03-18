@@ -1,5 +1,6 @@
 package me.yeonhyuk.fakepushserver;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,7 +13,10 @@ import java.time.Duration;
 @Slf4j
 @RestController
 @RequestMapping("/api/push")
+@RequiredArgsConstructor
 public class PushController {
+    private final PushCounter pushCounter;
+
     @PostMapping()
     public Mono<PushDto.GlobalResponse<PushDto.Res>> push(@RequestBody PushDto.Req req) {
         // delay 0.5 seconds
@@ -26,6 +30,8 @@ public class PushController {
                     }
                 })
                 .map(probability -> {
+                    this.pushCounter.increase();
+
                     if (probability == 100) {
                         return new PushDto.GlobalResponse<>(100, new PushDto.Res("Success", req.deviceId()));
                     } else {
